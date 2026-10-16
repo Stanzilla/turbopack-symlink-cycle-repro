@@ -2,10 +2,10 @@
 
 `next build` (Turbopack) fails during output file tracing when:
 
-1. `outputFileTracingIncludes` has an entry whose pattern makes Turbopack walk the tracing root (on 16.3.x any pattern; on 16.4.0 a recursive glob such as `**/*.txt`), and
+1. `outputFileTracingIncludes` has an entry whose pattern makes Turbopack walk the tracing root (on 16.3.x any pattern; on 16.4.x a recursive glob such as `**/*.txt`), and
 2. the pnpm workspace contains a package that is physically nested inside another workspace package and declares that ancestor package as a dependency or devDependency.
 
-On 16.3.x the build dies with `Too many levels of symbolic links (os error 62/40)`. On 16.4.0 it dies with Turbopack's own cycle error instead (see [Result on 16.4.0](#result-on-1640)).
+On 16.3.x the build dies with `Too many levels of symbolic links (os error 62/40)`. On 16.4.x it dies with Turbopack's own cycle error instead (see [Result on 16.4.x](#result-on-164x)).
 
 This layout is legal in pnpm workspaces. pnpm plants a `node_modules/umbrella -> ../..` symlink inside the nested package, which makes the directory tree self-embedding. Turbopack's include-glob walk (`get_glob_includes` in `crates/next-api/src/nft.rs` → `read_glob` in `turbopack/crates/turbo-tasks-fs/src/read_glob.rs`) walks the whole tracing root and follows the cycle until the OS returns `ELOOP`.
 
@@ -34,7 +34,7 @@ pnpm install
 pnpm --filter app exec next build
 ```
 
-## Result on 16.4.0
+## Result on 16.4.x
 
 ```
 Error [TurbopackInternalError]: Failed to write app endpoint /page
@@ -49,9 +49,9 @@ Debug info:
 - Execution of read_glob_inner failed (x3)
 ```
 
-The walk no longer reaches the OS `ELOOP` limit, but the build still fails on a layout that pnpm produces on its own. A single exact-path include such as `included-asset.txt` no longer triggers the walk on 16.4.0, because vercel/next.js#98382 anchors include patterns and only visits their literal directory prefixes.
+The walk no longer reaches the OS `ELOOP` limit, but the build still fails on a layout that pnpm produces on its own. A single exact-path include such as `included-asset.txt` no longer triggers the walk on 16.4.x, because vercel/next.js#98382 anchors include patterns and only visits their literal directory prefixes.
 
-Reproduced with next 16.4.0 on macOS (arm64) with pnpm 11.22.0 and Node 24.19.0 on 2026-10-07.
+Reproduced with next 16.4.0 (2026-10-07) and 16.4.2 (2026-10-16) on macOS (arm64) with pnpm 11.22.0 / 12.12.1 and Node 24.19.0.
 
 ## Result on 16.3.x
 
